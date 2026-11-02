@@ -22,16 +22,11 @@ public class RaceDemo {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        int expected = THREADS * INCREMENTS;
-
-        // 1) WITHOUT synchronized
+    /** Runs both experiments. Returns {withoutSynchronized, withSynchronized}. */
+    public static long[] compute() throws InterruptedException {
         UnsafeCounter unsafe = new UnsafeCounter();
         runThreads(() -> unsafe.incr());
-        System.out.println("Expected:                " + expected);
-        System.out.println("Without synchronized:    " + unsafe.get() + "   <-- lost updates (race condition)");
 
-        // 2) WITH synchronized (our Database)
         Database db = new Database();
         runThreads(() -> {
             try {
@@ -40,7 +35,21 @@ public class RaceDemo {
                 throw new RuntimeException(e);
             }
         });
-        System.out.println("With synchronized (DB):  " + db.get("counter") + "   <-- always exact");
+        long safe;
+        try {
+            safe = Long.parseLong(db.get("counter"));
+        } catch (KeyNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return new long[] {unsafe.get(), safe};
+    }
+
+    public static void main(String[] args) throws Exception {
+        int expected = THREADS * INCREMENTS;
+        long[] r = compute();
+        System.out.println("Expected:                " + expected);
+        System.out.println("Without synchronized:    " + r[0] + "   <-- lost updates (race condition)");
+        System.out.println("With synchronized (DB):  " + r[1] + "   <-- always exact");
     }
 
     private static void runThreads(Runnable task) throws InterruptedException {

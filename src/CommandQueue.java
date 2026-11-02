@@ -41,6 +41,15 @@ public class CommandQueue {
         return queue.removeFirst();
     }
 
+    /** A copy of what is waiting right now (used by the GUI to draw the queue). */
+    public synchronized java.util.List<String> pending() {
+        java.util.List<String> copy = new java.util.ArrayList<>();
+        for (Request r : queue) {
+            copy.add(r.client + ":  " + r.line);
+        }
+        return copy;
+    }
+
     /** No more commands will arrive; wake everyone so workers can finish and exit. */
     public synchronized void close() {
         closed = true;
